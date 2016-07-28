@@ -4,6 +4,10 @@ parameters:
 #    parameter_name: value
 
 services:
+    app_bundle.doctrine.orm.collection_date_filter:
+        class:      AppBundle\Doctrine\Orm\Filter\CollectionDateFilter
+        arguments:  [ @doctrine ]
+        public:     false
 
 # Examples of API resource mapping, learn more at
 # https://github.com/dunglas/DunglasApiBundle
@@ -16,16 +20,16 @@ services:
         parent:    "api.doctrine.orm.search_filter"
         arguments: [ { name: "partial", description: "partial" } ]
 
-    resource.event.date_filter:
-        parent:    "api.doctrine.orm.date_filter"
-        arguments: [ { startDate: ~, endDate: ~ } ]
+    resource.event.occurrences_date_filter:
+        parent:    "app_bundle.doctrine.orm.collection_date_filter"
+        arguments: [ occurrences, { startDate: ~, endDate: ~ } ]
 
     resource.event:
         parent:      "api.resource"
         arguments: [ "AppBundle\\Entity\\Event" ]
         calls:
             - method:    "initFilters"
-              arguments: [ [ "@resource.event.order_filter", "@resource.event.search_filter", "@resource.event.date_filter" ] ]
+              arguments: [ [ "@resource.event.order_filter", "@resource.event.search_filter", "@resource.event.occurrences_date_filter" ] ]
             - method:    "initNormalizationContext"
               arguments: [ { groups: [ "event_read" ] } ]
             - method:    "initDenormalizationContext"

@@ -10,7 +10,7 @@ Installation
 composer install
 ```
 
-## Patches ##
+### Patches ###
 
 We need to apply a couple of patches to [Handle circular references in DunglasApiParser](https://github.com/nelmio/NelmioApiDocBundle/commit/c1c711bc26fd5f74a94923f93b11153ede6d06be):
 
@@ -45,8 +45,7 @@ app/console fos:user:promote api-write ROLE_API_WRITE
 Test the API using username and password to get a token:
 
 ```
-token=$(curl --silent --request POST http://event-database-api.vm/api/login_check --data _username=api-write --data _password=apipass | sed 's/{"token":"\(.*\)"}/\1/')
-echo $token
+token=$(curl --silent --request POST http://event-database-api.vm/api/login_check --data _username=api-write --data _password=apipass | sed 's/{"token":"\(.*\)"}/\1/') && echo $token
 curl --silent --verbose --header "Authorization: Bearer $token" http://event-database-api.vm/api/events
 ```
 
@@ -64,6 +63,28 @@ curl --silent --verbose --request POST --header "Authorization: Bearer $token" h
 JSON
 ```
 
+### Disabling security (for development) ###
+
+You may want to be able to access the api with having to authenticate. To do this, uncommes some lines in app/config/security.yml:
+
+```
+security:
+    …
+    firewalls:
+        …
+        # api:
+        #     pattern:   ^/api
+        #     stateless: true
+        #     lexik_jwt: ~
+        …
+
+    # access_control:
+    #     - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    #     # Read/write API access
+    #     - { path: ^/api,       roles: [ ROLE_API_WRITE ], methods: [ POST, PUT, DELETE ] }
+    #     # Read only API access
+    #     - { path: ^/api,       roles: [ ROLE_API_READ ] }
+```
 
 Import feeds
 ------------
