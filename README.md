@@ -118,7 +118,7 @@ vendor/bin/behat features/events.feature
 To run unit tests:
 
 ```
-vendor/symfony/symfony/phpunit
+vendor/bin/phpunit
 ```
 
 

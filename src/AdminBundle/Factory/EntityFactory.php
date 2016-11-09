@@ -2,6 +2,7 @@
 
 namespace AdminBundle\Factory;
 
+use PropertiableBundle\Service\EntityPropertyManagerInterface;
 use AdminBundle\Service\FeedReader\ValueConverter;
 use Doctrine\ORM\EntityManagerInterface;
 use DoctrineExtensions\Taggable\Taggable;
@@ -40,17 +41,23 @@ abstract class EntityFactory {
   protected $accessor;
 
   /**
+   * @var EntityPropertyManagerInterface
+   */
+  protected $entityPropertyManager;
+
+  /**
    * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
    * @param \Doctrine\ORM\EntityManagerInterface $em
    * @param \AdminBundle\Service\FeedReader\ValueConverter $valueConverter
    * @param \FPN\TagBundle\Entity\TagManager $tagManager
    */
-  public function __construct(ContainerInterface $container, EntityManagerInterface $em, ValueConverter $valueConverter, TagManager $tagManager = NULL) {
+  public function __construct(ContainerInterface $container, EntityManagerInterface $em, ValueConverter $valueConverter, TagManager $tagManager = NULL, EntityPropertyManagerInterface $entityPropertyManager) {
     $this->container = $container;
     $this->em = $em;
     $this->valueConverter = $valueConverter;
     $this->tagManager = $tagManager;
     $this->accessor = PropertyAccess::createPropertyAccessor();
+    $this->entityPropertyManager = $entityPropertyManager;
   }
 
   /**

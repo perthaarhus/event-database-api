@@ -12,6 +12,8 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 use AppBundle\Traits\BlameableEntity;
 use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
 use Doctrine\ORM\Mapping as ORM;
+use PropertiableBundle\Entity\PropertiableEntity;
+use PropertiableBundle\Entity\PropertiableTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -35,10 +37,11 @@ use Doctrine\Common\Collections\ArrayCollection;
  *   }
  * )
  */
-class Event extends Thing implements Taggable {
+class Event extends Thing implements Taggable, PropertiableEntity {
   use TimestampableEntity;
   use BlameableEntity;
   use SoftDeleteableEntity;
+  use PropertiableTrait;
 
   /**
    * @var int
@@ -80,20 +83,6 @@ class Event extends Thing implements Taggable {
    * )
    */
   private $excerpt;
-
-  /**
-   * @var Feed
-   *
-   * @ORM\ManyToOne(targetEntity="AdminBundle\Entity\Feed")
-   */
-  private $feed;
-
-  /**
-   * @var string
-   *
-   * @ORM\Column(type="string", length=255, nullable=true)
-   */
-  private $feedEventId;
 
   /**
    * Sets id.
@@ -147,38 +136,6 @@ class Event extends Thing implements Taggable {
    */
   public function getOccurrences() {
     return $this->occurrences;
-  }
-
-  /**
-   *
-   */
-  public function setFeed($feed) {
-    $this->feed = $feed;
-
-    return $this;
-  }
-
-  /**
-   *
-   */
-  public function getFeed() {
-    return $this->feed;
-  }
-
-  /**
-   *
-   */
-  public function setFeedEventId($feedEventId) {
-    $this->feedEventId = $feedEventId;
-
-    return $this;
-  }
-
-  /**
-   *
-   */
-  public function getFeedEventId() {
-    return $this->feedEventId;
   }
 
   /**

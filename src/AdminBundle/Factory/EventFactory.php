@@ -60,14 +60,18 @@ class EventFactory extends EntityFactory {
     $feedEventId = isset($data['feed_event_id']) ? $data['feed_event_id'] : NULL;
     $id = isset($data['id']) ? $data['id'] : uniqid();
 
-    $event = $this->em->getRepository('AppBundle:Event')->findOneBy([
-      'feed' => $feed,
+    $event = $this->entityPropertyManager->getEntity('AppBundle:Event', [
+      'feedId' => $feed->getId(),
       'feedEventId' => $feedEventId,
     ]);
 
     if ($event === NULL) {
       $event = new Event();
-      $event->setFeedEventId($id);
+      $event->setProperties([
+        'feedId' => $feed->getId(),
+        'feedEventId' => $feedEventId,
+      ]);
+      $event = $this->entityPropertyManager->saveProperties($event);
     }
 
     return $event;

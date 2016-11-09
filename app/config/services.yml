@@ -31,11 +31,15 @@ services:
             - "@file_handler"
             - "@authenticator"
 
+    entity_property_manager:
+        class: PropertiableBundle\Service\EntityPropertyManager
+        arguments: [ "@doctrine.orm.entity_manager" ]
+
     # Factories
     entity_factory:
         class: AdminBundle\Factory\EntityFactory
         abstract:  true
-        arguments: [ "@service_container", "@doctrine.orm.entity_manager", "@value_converter", "@tag_manager" ]
+        arguments: [ "@service_container", "@doctrine.orm.entity_manager", "@value_converter", "@tag_manager", "@entity_property_manager" ]
 
     place_factory:
         parent: entity_factory
@@ -127,6 +131,15 @@ services:
             - "@event_factory"
             - "@place_factory"
             - "@file_handler"
+
+    # entity_property_listener:
+    #     class: PropertiableBundle\EventListener\EventListener
+    #     # arguments: [ "@entity_property_manager" ]
+    #     arguments: [ "@service_container" ]
+    #     tags:
+    #         - { name: doctrine.event_listener, event: postLoad }
+    #         - { name: doctrine.event_listener, event: postPersist }
+    #         - { name: doctrine.event_listener, event: postUpdate }
 
     feed_reader:
         class: AdminBundle\Service\FeedReader
