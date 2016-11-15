@@ -7,8 +7,6 @@ use Doctrine\ORM\Mapping as ORM;
 trait PropertiableTrait {
   /**
    * @var array
-   *
-   * @ORM\Column(type="json_array", nullable=true)
    */
   private $properties = [];
 
@@ -18,6 +16,8 @@ trait PropertiableTrait {
     }
 
     $this->properties = array_merge($this->properties, $properties);
+
+    return $this;
   }
 
   public function getProperties() {

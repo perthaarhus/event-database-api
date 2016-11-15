@@ -73,13 +73,9 @@ class EntityPropertyManager implements EntityPropertyManagerInterface {
     foreach ($properties as $name => $value) {
       $property = $this->repository->findOneByEntity($entity, $name);
       if ($property === NULL) {
-        $property = new EntityProperty($this->getClassName($entity),
-          $entity->getId(), $name, NULL);
+        $property = new EntityProperty($this->getClassName($entity), $entity->getId(), $name, NULL);
       }
       $property->setValue($value);
-
-      echo PHP_EOL, __METHOD__, PHP_EOL, $property->toString(), PHP_EOL;
-
       $this->em->persist($property);
     }
     $this->em->flush();
@@ -91,18 +87,16 @@ class EntityPropertyManager implements EntityPropertyManagerInterface {
     foreach ($properties as $property) {
       $values[$property->getName()] = $property->getValue();
     }
-    $entity->setProperties($values, TRUE);
+
+    return $entity->setProperties($values, TRUE);
   }
 
   public function clearProperties(PropertiableEntity $entity) {
-    $className = $this->getClassName($entity);
-    $builder = $this->em->createQueryBuilder();
-    $builder->delete('PropertiableBundle:EntityProperty', 'p')
-      ->where('p.entityType = :className and p.entityId = :entityId')
-      ;
-    $query = $builder->getQuery();
-    $query->setParameters([':className' => $className, ':entityId' => $entity->getId()]);
-    $query->execute();
+    $properties = $this->repository->findByEntity($entity);
+    foreach ($properties as $property) {
+      $this->em->remove($property);
+    }
+    $this->em->flush();
   }
 
   private function getClassName($class) {

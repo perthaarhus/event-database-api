@@ -161,15 +161,6 @@ services:
             - "@place_factory"
             - "@file_handler"
 
-    # entity_property_listener:
-    #     class: PropertiableBundle\EventListener\EventListener
-    #     # arguments: [ "@entity_property_manager" ]
-    #     arguments: [ "@service_container" ]
-    #     tags:
-    #         - { name: doctrine.event_listener, event: postLoad }
-    #         - { name: doctrine.event_listener, event: postPersist }
-    #         - { name: doctrine.event_listener, event: postUpdate }
-
     feed_reader:
         class: AdminBundle\Service\FeedReader
         arguments:

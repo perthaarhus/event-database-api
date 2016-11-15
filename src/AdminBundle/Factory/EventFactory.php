@@ -43,38 +43,23 @@ class EventFactory extends EntityFactory {
    * @return \AppBundle\Entity\Event|object
    */
   public function get(array $data) {
-    $entity = $this->getEntity($data);
+    $properties = [
+      'feed' => $data['feed']->getId(),
+      'feedEventId' => $data['feed_event_id'],
+    ];
+
+    $entity = $this->entityPropertyManager->getEntity('AppBundle:Event', $properties);
+    if ($entity === NULL) {
+      $entity = new Event();
+    }
     $this->setValues($entity, $data);
     $this->persist($entity);
     $this->flush();
 
+    $entity->setProperties($properties);
+    $this->entityPropertyManager->saveProperties($entity);
+
     return $entity;
-  }
-
-  /**
-   * @param array $data
-   * @return \AppBundle\Entity\Event|object
-   */
-  private function getEntity(array $data) {
-    $feed = isset($data['feed']) ? $data['feed'] : NULL;
-    $feedEventId = isset($data['feed_event_id']) ? $data['feed_event_id'] : NULL;
-    $id = isset($data['id']) ? $data['id'] : uniqid();
-
-    $event = $this->entityPropertyManager->getEntity('AppBundle:Event', [
-      'feedId' => $feed->getId(),
-      'feedEventId' => $feedEventId,
-    ]);
-
-    if ($event === NULL) {
-      $event = new Event();
-      $event->setProperties([
-        'feedId' => $feed->getId(),
-        'feedEventId' => $feedEventId,
-      ]);
-      $event = $this->entityPropertyManager->saveProperties($event);
-    }
-
-    return $event;
   }
 
   /**

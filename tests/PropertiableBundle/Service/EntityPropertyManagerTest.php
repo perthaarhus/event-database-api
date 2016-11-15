@@ -1,6 +1,8 @@
 <?php
 
+use AppBundle\Entity\User;
 use PropertiableBundle\Service\EntityPropertyManager;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Tests\AppBundle\Test\DatabaseTestCase;
 use AppBundle\Entity\Event;
 
@@ -12,12 +14,48 @@ class EntityPropertyManagerTest extends DatabaseTestCase {
 
   public function setUp() {
     parent::setUp();
-    $this->loadData();
     $this->entityPropertyManager = new EntityPropertyManager($this->em);
-    // $this->em->getEventManager()->addEventListener(['postLoad', 'postPersist', 'postUpdate'], new PropertiableBundle\EventListener\EventListener($this->container));
+
+    $username = 'username';
+    $email = $username . '@example.com';
+    $password = 'password';
+    $firewall = 'main';
+    $roles = ['ROLE_ADMIN'];
+
+    $user = new User();
+    $user
+      ->setUsername($username)
+      ->setPlainPassword($password)
+      ->setEmail($email)
+      ->setRoles($roles)
+      ->setEnabled(TRUE);
+    $this->persist($user);
+    $this->flush();
+
+    $token = new UsernamePasswordToken($user, $password, $firewall);
+    $this->container->get('security.token_storage')->setToken($token);
   }
 
-  private function loadData() {
+  private function loadEntities() {
+    $sql = <<<SQL
+insert into event(id, created_at, updated_at, name) values
+(23, '2001-01-01', '2001-01-01', 'Event 23'),
+(42, '2001-01-01', '2001-01-01', 'Event 42'),
+(87, '2001-01-01', '2001-01-01', 'Event 87')
+;
+SQL;
+
+    $stmt = $this->em->getConnection()->prepare($sql);
+    $stmt->execute();
+
+    $sql = 'select * from event';
+    $stmt = $this->em->getConnection()->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->fetchAll();
+    $this->assertEquals(3, count($result));
+  }
+
+  private function loadEntityProperties() {
     $sql = <<<SQL
 insert into entity_property(entity_type, entity_id, name, value) values
 ('AppBundle\Entity\Event', 23, 'feedId', '1'),
@@ -34,31 +72,79 @@ SQL;
     $stmt = $this->em->getConnection()->prepare($sql);
     $stmt->execute();
 
-    $sql = <<<SQL
-insert into event(id, created_at, updated_at, name) values
-(23, '2001-01-01', '2001-01-01', 'Event 23'),
-(42, '2001-01-01', '2001-01-01', 'Event 42'),
-(87, '2001-01-01', '2001-01-01', 'Event 87')
-;
-SQL;
+    $this->assertEquals(6, count($this->getEntityProperties()));
+  }
 
-    $stmt = $this->em->getConnection()->prepare($sql);
-    $stmt->execute();
+  public function testSaveAndLoadEntityProperties() {
+    $this->loadEntities();
 
-    $sql = 'select * from entity_property';
-    $stmt = $this->em->getConnection()->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $this->assertEquals(6, count($result));
+    $entity = $this->em->getRepository('AppBundle:Event')->find(87);
+    $this->assertNotNull($entity);
+    $this->assertEquals(87, $entity->getId());
+    $this->assertEquals([], $entity->getProperties());
 
-    $sql = 'select * from event';
-    $stmt = $this->em->getConnection()->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $this->assertEquals(3, count($result));
+    $this->assertEquals(0, count($this->getEntityProperties()));
+
+    $entity->setProperties([
+      'feedId' => 12,
+      'feedEventId' => 112,
+    ]);
+    $this->saveProperties($entity);
+    // $this->printEntityProperties();
+
+    $this->assertEquals(2, count($this->getEntityProperties()));
+
+    $this->loadProperties($entity);
+    $this->assertEquals(87, $entity->getId());
+    $this->assertEquals([
+      'feedId' => 12,
+      'feedEventId' => 112,
+    ], $entity->getProperties());
+
+    $entity->setProperties([
+      'feedId' => 2,
+      'feedEventId' => 12,
+    ]);
+    $this->saveProperties($entity);
+
+    // $this->printEntityProperties();
+
+    // $sql = 'select * from entity_property';
+    // $stmt = $this->em->getConnection()->prepare($sql);
+    // $stmt->execute();
+    // $result = $stmt->fetchAll();
+    // var_export($result);
+
+    // $entityProperties = $this->getEntityProperties();
+    // $this->assertEquals(2, count($entityProperties));
+    // $this->assertEquals('feedEventId', $entityProperties[0]->getName());
+    // $this->assertEquals(12, $entityProperties[0]->getValue());
+    // $this->assertEquals('feedId', $entityProperties[1]->getName());
+    // $this->assertEquals(2, $entityProperties[1]->getValue());
+
+
+
+
+    $this->assertEquals(2, count($this->getEntityProperties()));
+
+    $this->printEntityProperties();
+    var_export($entity->getProperties());
+
+    $this->loadProperties($entity);
+
+    $this->printEntityProperties();
+
+    $this->assertEquals(87, $entity->getId());
+    $this->assertEquals([
+      'feedId' => 2,
+      'feedEventId' => 12,
+    ], $entity->getProperties());
   }
 
   public function testStuff() {
+    $this->loadEntities();
+    $this->loadEntityProperties();
+
     $entity = $this->entityPropertyManager->getEntity('AppBundle:Event', [
       'feedId' => 1,
       'feedEventId' => '12',
@@ -91,9 +177,12 @@ SQL;
     $this->assertNotNull($entities);
     $this->assertEquals(1, count($entities));
 
+    $this->assertEquals(6, count($this->getEntityProperties()));
     $entity = $this->em->getRepository('AppBundle:Event')->find(87);
+    $this->loadProperties($entity);
     $entity->setProperties(['feedId' => 2]);
     $this->saveProperties($entity);
+    $this->assertEquals(6, count($this->getEntityProperties()));
 
     // $this->printEntityProperties();
 
@@ -109,8 +198,6 @@ SQL;
     ]);
     $this->assertNotNull($entities);
 
-    var_export([__FILE__.':'.__LINE__, $entities]);
-
     $this->assertEquals(1, count($entities));
 
     $entity->setProperties(['feedEventId' => 12]);
@@ -124,13 +211,20 @@ SQL;
     $this->assertEquals(1, count($entities));
     $this->assertEquals(87, $entities[0]->getId());
 
+    $this->assertEquals(6, count($this->getEntityProperties()));
+
     $entity->setProperties([
       'feedId' => 12,
       'feedEventId' => 112,
     ]);
     $this->saveProperties($entity);
 
+    $this->printEntityProperties();
+
+    $this->assertEquals(6, count($this->getEntityProperties()));
+
     $this->loadProperties($entity);
+    $this->assertEquals(87, $entity->getId());
     $this->assertEquals([
       'feedId' => 12,
       'feedEventId' => 112,
@@ -141,14 +235,10 @@ SQL;
     $event->setProperties(['test' => 'test'], true);
     $this->em->persist($event);
     $this->em->flush();
+    $this->saveProperties($event);
 
-    //$this->printEntityProperties();
-
-    $sql = 'select * from entity_property';
-    $stmt = $this->em->getConnection()->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $this->assertEquals(7, count($result));
+    $this->printEntityProperties();
+    $this->assertEquals(7, count($this->getEntityProperties()));
 
     //$this->saveProperties($event);
 
@@ -165,9 +255,11 @@ SQL;
       'test' => 'test',
     ], $anotherEvent->getProperties());
 
+    $this->printEntityProperties();
+
     $entities = $this->entityPropertyManager->getEntities('AppBundle:Event', [
-      'feedId' => 2,
-      'feedEventId' => 12,
+      'feedId' => 12,
+      'feedEventId' => 112,
     ]);
     $this->assertNotNull($entities);
     $this->assertEquals(1, count($entities));
@@ -181,13 +273,7 @@ SQL;
 
     $this->printEntityProperties();
 
-//    var_export([__LINE__, $entity->getId(), $entity->getName()]);
-
-    $sql = 'select * from entity_property';
-    $stmt = $this->em->getConnection()->prepare($sql);
-    $stmt->execute();
-    $result = $stmt->fetchAll();
-    $this->assertEquals(7, count($result));
+    $this->assertEquals(7, count($this->getEntityProperties()));
 
     $entities = $this->entityPropertyManager->getEntities('AppBundle:Event', [
       'feedId' => 2,
@@ -202,13 +288,19 @@ SQL;
   }
 
   private function printEntityProperties() {
-    $properties = $this->em->getRepository('PropertiableBundle:EntityProperty')->findAll();
+    return;
+    $properties = $this->getEntityProperties();
 
-    echo PHP_EOL;
+    echo PHP_EOL, str_repeat('-', 80), PHP_EOL;
+    echo 'Entity properties', PHP_EOL;
     foreach ($properties as $property) {
-      echo $property->toString(), PHP_EOL;
+      echo '  ' . $property->toString(), PHP_EOL;
     }
-    echo PHP_EOL;
+    echo str_repeat('-', 80), PHP_EOL;
+  }
+
+  private function getEntityProperties() {
+    return $this->em->getRepository('PropertiableBundle:EntityProperty')->findAll();
   }
 
   private function saveProperties($entity) {
